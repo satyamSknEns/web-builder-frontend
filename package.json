@@ -3,14 +3,18 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev -p 5002 --turbopack",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p 5002",
     "lint": "next lint"
   },
   "dependencies": {
+    "@hello-pangea/dnd": "^18.0.1",
+    "axios": "^1.9.0",
     "next": "15.2.0",
     "react": "^19.0.0",
+    "react-dnd": "^16.0.1",
+    "react-dnd-html5-backend": "^16.0.1",
     "react-dom": "^19.0.0",
     "react-icons": "^5.5.0"
   },
