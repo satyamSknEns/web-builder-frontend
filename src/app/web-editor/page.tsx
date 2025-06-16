@@ -1,23 +1,58 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
-import { FiSettings, FiGrid, FiPlus } from "react-icons/fi";
+import { FiSettings, FiGrid } from "react-icons/fi";
+import { GoPlusCircle } from "react-icons/go";
 import { BsDatabaseAdd } from "react-icons/bs";
-
-const sectionOptions = [
-  { id: "imageWithText", label: "Image with Text" },
-  { id: "image", label: "Image" },
-  { id: "headingDesc", label: "Heading and Description" },
-  { id: "imageCollection", label: "Collection of Images" },
-];
+import axios, { AxiosRequestConfig } from "axios";
+import { apiUrl } from "../config";
+import {
+  DragDropContext,
+  Droppable,
+  Draggable,
+  DropResult,
+} from "@hello-pangea/dnd";
 
 const WebEditor = () => {
-  const [activeTab, setActiveTab] = useState<"settings" | "content" | "components">("content");
+  const [activeTab, setActiveTab] = useState<
+    "settings" | "content" | "components"
+  >("content");
   const [showSectionPopup, setShowSectionPopup] = useState(false);
   const [addedSections, setAddedSections] = useState<string[]>([]);
   const [hoveredSection, setHoveredSection] = useState<string | null>(null);
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
+  const [allSections, setAllSections] = useState<string[]>([]);
   const popupRef = useRef<HTMLDivElement>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
+
+  const getAllSections = async () => {
+    const config: AxiosRequestConfig = {
+      url: `${apiUrl}/section-list`,
+      method: "get",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    };
+    try {
+      const res = await axios(config);
+      if (res?.status === 200) {
+        setAllSections(res.data.data);
+      }
+    } catch (error) {
+      console.log("Error", error);
+    }
+  };
+
+  useEffect(() => {
+    getAllSections();
+  }, []);
+
+  const formatSectionLabel = (id: string) => {
+    const formatedSection = id
+      .replace(/_/g, " ")
+      .replace(/\bsections\b/i, "")
+      .trim();
+    return formatedSection.charAt(0).toUpperCase() + formatedSection.slice(1);
+  };
 
   const handleAddSection = (sectionId: string) => {
     setAddedSections([...addedSections, sectionId]);
@@ -30,7 +65,6 @@ const WebEditor = () => {
     setShowSectionPopup((prev) => {
       const newState = !prev;
       if (!newState) {
-
         setHoveredSection(null);
         setSelectedSection(null);
       }
@@ -40,8 +74,10 @@ const WebEditor = () => {
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (popupRef.current && !popupRef.current.contains(event.target as Node)) {
-
+      if (
+        popupRef.current &&
+        !popupRef.current.contains(event.target as Node)
+      ) {
         setHoveredSection(null);
         setSelectedSection(null);
       }
@@ -56,27 +92,36 @@ const WebEditor = () => {
     };
   }, [showSectionPopup]);
 
+  const onDragEnd = (result: DropResult) => {
+    const { destination, source } = result;
+    if (!destination) return;
+    const newSections = Array.from(addedSections);
+    const [movedItem] = newSections.splice(source.index, 1);
+    newSections.splice(destination.index, 0, movedItem);
+    setAddedSections(newSections);
+  };
+
   const renderSectionPreview = (sectionId: string) => {
     switch (sectionId) {
-      case "imageWithText":
+      case "image_text_sections":
         return (
-          <div className="flex flex-col border rounded-md overflow-hidden shadow bg-white mb-4">
-            <div className="flex">
-              <div className="w-1/2 p-4 bg-gray-100 text-center">
+          <div className="flex flex-col border border-slate-400 rounded-md overflow-hidden shadow bg-white mb-4">
+            <div className="flex items-center justify-between p-2">
+              <div className="w-1/2 p-4 bg-gray-100 text-center text-sm">
                 Image Placeholder
               </div>
               <div className="w-1/2 p-4">
-                <h3 className="text-xl font-semibold mb-2">Heading</h3>
-                <p className="text-gray-600">
+                <p className="font-semibold mb-2 text-sm">Heading</p>
+                <p className="text-gray-600 text-xs">
                   This is a description for the image with text section.
                 </p>
               </div>
             </div>
           </div>
         );
-      case "image":
+      case "gallery_sections":
         return (
-          <div className="flex flex-col bg-gray-100 text-center mb-4 rounded">
+          <div className="flex flex-col border border-slate-400 bg-gray-100 text-center mb-4 rounded w-full">
             <div className="p-6">Image Section</div>
           </div>
         );
@@ -91,13 +136,19 @@ const WebEditor = () => {
             </div>
           </div>
         );
-      case "imageCollection":
+      case "multi_column_sections":
         return (
-          <div className="flex flex-col mb-4">
-            <div className="grid grid-cols-3 gap-2">
-              <div className="h-24 bg-gray-200 rounded">Image 1</div>
-              <div className="h-24 bg-gray-200 rounded">Image 2</div>
-              <div className="h-24 bg-gray-200 rounded">Image 3</div>
+          <div className="flex items-center border border-slate-400 rounded-lg w-full bg-white">
+            <div className="flex items-center justify-center gap-2 border-blue-300 w-full p-2">
+              <div className="h-24 w-24 rounded-md flex items-center justify-center bg-gray-100">
+                Image 1
+              </div>
+              <div className="h-24 w-24 rounded-md flex items-center justify-center bg-gray-100">
+                Image 2
+              </div>
+              <div className="h-24 w-24 rounded-md flex items-center justify-center bg-gray-100">
+                Image 3
+              </div>
             </div>
           </div>
         );
@@ -107,80 +158,120 @@ const WebEditor = () => {
   };
 
   return (
-    <div className="min-h-screen flex text-black">
+    <div className="h-screen flex text-black w-full overflow-hidden">
       <div
         ref={sidebarRef}
-        className="w-[25%] flex items-start border-r bg-white py-4 relative"
+        className="w-[20%] flex items-start bg-white py-4 relative"
       >
-        <div className="flex flex-col gap-4 items-start border-r-[1px] p-2 border-slate-200 w-[15%] h-full">
-          <button
-            className={`flex items-center justify-center gap-2 p-3 cursor-pointer outline-none rounded-md w-full ${activeTab === "content" ? "bg-gray-200 shadow" : "hover:bg-gray-200"
+        <div className="flex items-center flex-col gap-4 border-r-[1px] p-2 border-slate-200 w-[25%] h-full">
+          {["content", "components", "settings"].map((tab) => (
+            <button
+              key={tab}
+              className={`flex items-center justify-center gap-2 cursor-pointer outline-none rounded-md max-w-8 max-h-8 ${
+                activeTab === tab ? "bg-gray-200 shadow" : "hover:bg-gray-200"
               }`}
-            onClick={() => setActiveTab("content")}
-          >
-            <BsDatabaseAdd />
-          </button>
-          <button
-            className={`flex items-center justify-center gap-2 p-3 cursor-pointer outline-none rounded-md w-full ${activeTab === "components" ? "bg-gray-200 shadow" : "hover:bg-gray-200"
-              }`}
-            onClick={() => setActiveTab("components")}
-          >
-            <FiGrid />
-          </button>
-          <button
-            className={`flex items-center justify-center gap-2 p-3 cursor-pointer outline-none rounded-md w-full ${activeTab === "settings" ? "bg-gray-200 shadow" : "hover:bg-gray-200"
-              }`}
-            onClick={() => setActiveTab("settings")}
-          >
-            <FiSettings />
-          </button>
+              onClick={() => setActiveTab(tab as any)}
+            >
+              {tab === "content" ? (
+                <BsDatabaseAdd className="m-2" />
+              ) : tab === "components" ? (
+                <FiGrid className="m-2" />
+              ) : (
+                <FiSettings className="m-2" />
+              )}
+            </button>
+          ))}
         </div>
 
-        <div className="w-[75%] px-2 mt-8">
+        <div className="w-[75%] px-2 flex h-full mx-auto ">
           {activeTab === "content" && (
-            <div>
-              <button
-                className="flex items-center cursor-pointer gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                onClick={togglePopup}
-              >
-                <FiPlus /> {showSectionPopup ? "Close Section" : "Add a Section"}
-              </button>
-
-
-            </div>
+            <DragDropContext onDragEnd={onDragEnd}>
+              <Droppable droppableId="sidebar-section-list">
+                {(provided) => (
+                  <div
+                    className="w-full flex items-center flex-col justify-between"
+                    {...provided.droppableProps}
+                    ref={provided.innerRef}
+                  >
+                    <div className="flex flex-col mt-8 w-full text-xs">
+                      {addedSections.length === 0 ? (
+                        <p className="text-gray-400 p-2">
+                          No sections added yet.
+                        </p>
+                      ) : (
+                        addedSections.map((section, index) => (
+                          <Draggable
+                            key={`${section}-${index}`}
+                            draggableId={`sidebar-${section}-${index}`}
+                            index={index}
+                          >
+                            {(provided, snapshot) => (
+                              <div
+                                ref={provided.innerRef}
+                                {...provided.draggableProps}
+                                {...provided.dragHandleProps}
+                                className={`flex items-center gap-2 w-full p-2 rounded-lg cursor-pointer transition-all duration-300 ${
+                                  snapshot.isDragging
+                                    ? "bg-gray-200 shadow"
+                                    : "hover:bg-gray-100"
+                                }`}
+                              >
+                                <span className="text-gray-500">☰</span>
+                                <span>{formatSectionLabel(section)}</span>
+                              </div>
+                            )}
+                          </Draggable>
+                        ))
+                      )}
+                      {provided.placeholder}
+                    </div>
+                    <div
+                      className="flex w-full hover:bg-gray-200 cursor-pointer rounded-lg transition-all ease-in-out duration-300 border border-slate-200"
+                      onClick={togglePopup}
+                    >
+                      <button className="flex items-center text-sm cursor-pointer outline-none gap-2 px-2 py-1.5 text-blue-700 rounded">
+                        <GoPlusCircle />
+                        Add section
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </Droppable>
+            </DragDropContext>
           )}
-
           {activeTab === "settings" && (
             <p className="text-gray-600">Settings content goes here...</p>
           )}
-
           {activeTab === "components" && (
             <p className="text-gray-600">Component content goes here...</p>
           )}
         </div>
+
         {activeTab === "content" && showSectionPopup && (
           <div
             ref={popupRef}
-            className="slide-top absolute mt-4 bg-white shadow-md rounded-lg border border-gray-400 w-[700px] h-[360px] overflow-y-scroll flex z-10 left-full bottom-8"
+            className={`mt-4 rounded-lg border-blue-400 shadow-[0_3px_10px_rgb(0,0,0,0.2)] md:w-[600px] h-[360px] overflow-y-hidden flex z-10 absolute left-full bottom-1 right-0  ${
+              activeTab === "content" && showSectionPopup ? "slide-top" : ""
+            }`}
           >
-            <div className="overflow-y-scroll h-full w-[35%] p-1">
-              <div className="rounded-lg">
-                <input
-                  type="search"
-                  placeholder="Search"
-                  className="w-full border rounded-lg py-1 text-center"
-                />
-              </div>
-              <h4 className="text-sm font-semibold text-gray-700 mb-2 my-3">Sections</h4>
+            <div className="overflow-y-scroll h-full w-[35%] bg-white p-2">
+              <input
+                type="search"
+                placeholder="Search"
+                className="w-full border border-slate-300 rounded-lg py-1.5 px-2 text-gray-600 text-sm outline-none focus:border-slate-500 transition-all"
+              />
+              <h4 className="text-sm font-semibold text-gray-700 my-3">
+                Sections
+              </h4>
               <ul className="space-y-1">
-                {sectionOptions.map((section) => (
-                  <li key={section.id}>
+                {allSections.map((section) => (
+                  <li key={section}>
                     <button
-                      onClick={() => handleAddSection(section.id)}
-                      onMouseEnter={() => setHoveredSection(section.id)}
-                      className="w-full flex items-center text-left px-3 py-2 rounded-md text-gray-600 hover:bg-gray-100 transition-colors duration-150"
+                      onClick={() => handleAddSection(section)}
+                      onMouseEnter={() => setHoveredSection(section)}
+                      className="w-full text-left px-3 py-1 text-sm rounded-md text-gray-600 hover:bg-gray-100 cursor-pointer"
                     >
-                      <span className="text-sm">{section.label}</span>
+                      {formatSectionLabel(section)}
                     </button>
                   </li>
                 ))}
@@ -202,15 +293,45 @@ const WebEditor = () => {
         )}
       </div>
 
-      <div className="w-[70%] p-8 bg-gray-100">
+      <div className="w-[80%] p-2 bg-gray-100">
         {addedSections.length === 0 ? (
-          <></>
-        ) : (
-          <div className="space-y-4">
-            {addedSections.map((sectionId, index) => (
-              <div key={`${sectionId}-${index}`}>{renderSectionPreview(sectionId)}</div>
-            ))}
+          <div className="text-center text-gray-400 mt-10">
+            No sections added yet. Click &quot;Add section&quot; to get started.
           </div>
+        ) : (
+          <DragDropContext onDragEnd={onDragEnd}>
+            <Droppable droppableId="section-list">
+              {(provided) => (
+                <div
+                  {...provided.droppableProps}
+                  ref={provided.innerRef}
+                  className="space-y-4 h-full border border-blue-100 rounded-md shadow-[0_3px_10px_rgb(0,0,0,0.2)] p-2 bg-white overflow-y-auto"
+                >
+                  {addedSections.map((sectionId, index) => (
+                    <Draggable
+                      key={`${sectionId}-${index}`}
+                      draggableId={`${sectionId}-${index}`}
+                      index={index}
+                    >
+                      {(provided, snapshot) => (
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          {...provided.dragHandleProps}
+                          className={`rounded ${
+                            snapshot.isDragging ? "shadow-lg" : ""
+                          }`}
+                        >
+                          {renderSectionPreview(sectionId)}
+                        </div>
+                      )}
+                    </Draggable>
+                  ))}
+                  {provided.placeholder}
+                </div>
+              )}
+            </Droppable>
+          </DragDropContext>
         )}
       </div>
     </div>
