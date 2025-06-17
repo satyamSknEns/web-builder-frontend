@@ -1,0 +1,196 @@
+{
+  "image_text_section": [
+    {
+      "sectionId": "section_1750055212150_image_with_text",
+      "name": "Image With Text",
+      "heading": "Write here heading of the section",
+      "imageUrl": "https://png.pngtree.com/png-clipart/20190619/original/pngtree-vector-picture-icon-png-image_4013511.jpg",
+      "title": "Image with text",
+      "description": "Add description here for this section.",
+      "imageAlignment": "left"
+    }
+  ],
+  "gallery_sections": [
+    {
+      "sectionId": "section_1750056019762_2_gallery_section",
+      "name": "Gallery Section",
+      "heading": "3 Images",
+      "imageCount": 3,
+      "galleryLayout": "vertical",
+      "images": [
+        {
+          "imageUrl": "https://png.pngtree.com/png-clipart/20190619/original/pngtree-vector-picture-icon-png-image_4013511.jpg",
+          "buttonText": "More",
+          "buttonUrl": "https://example.com/gallery2-1"
+        },
+        {
+          "imageUrl": "https://png.pngtree.com/png-clipart/20190619/original/pngtree-vector-picture-icon-png-image_4013511.jpg",
+          "buttonText": "More",
+          "buttonUrl": "https://example.com/gallery2-2"
+        },
+        {
+          "imageUrl": "https://png.pngtree.com/png-clipart/20190619/original/pngtree-vector-picture-icon-png-image_4013511.jpg",
+          "buttonText": "More",
+          "buttonUrl": "https://example.com/gallery2-3"
+        }
+      ]
+    },
+    {
+      "sectionId": "section_1750056019762_3_gallery_section",
+      "name": "Gallery Section",
+      "heading": "4 Images",
+      "imageCount": 4,
+      "galleryLayout": "horizontal",
+      "images": [
+        {
+          "imageUrl": "https://png.pngtree.com/png-clipart/20190619/original/pngtree-vector-picture-icon-png-image_4013511.jpg",
+          "buttonText": "Explore",
+          "buttonUrl": "https://example.com/gallery3-1"
+        },
+        {
+          "imageUrl": "https://png.pngtree.com/png-clipart/20190619/original/pngtree-vector-picture-icon-png-image_4013511.jpg",
+          "buttonText": "Explore",
+          "buttonUrl": "https://example.com/gallery3-2"
+        },
+        {
+          "imageUrl": "https://png.pngtree.com/png-clipart/20190619/original/pngtree-vector-picture-icon-png-image_4013511.jpg",
+          "buttonText": "Explore",
+          "buttonUrl": "https://example.com/gallery3-3"
+        },
+        {
+          "imageUrl": "https://png.pngtree.com/png-clipart/20190619/original/pngtree-vector-picture-icon-png-image_4013511.jpg",
+          "buttonText": "Explore",
+          "buttonUrl": "https://example.com/gallery3-4"
+        }
+      ]
+    },
+    {
+      "sectionId": "section_1750056019762_4_gallery_section",
+      "name": "Gallery Section",
+      "heading": "5 Images",
+      "imageCount": 5,
+      "galleryLayout": "vertical",
+      "images": [
+        {
+          "imageUrl": "https://png.pngtree.com/png-clipart/20190619/original/pngtree-vector-picture-icon-png-image_4013511.jpg",
+          "buttonText": "Show",
+          "buttonUrl": "https://example.com/gallery4-1"
+        },
+        {
+          "imageUrl": "https://png.pngtree.com/png-clipart/20190619/original/pngtree-vector-picture-icon-png-image_4013511.jpg",
+          "buttonText": "Show",
+          "buttonUrl": "https://example.com/gallery4-2"
+        },
+        {
+          "imageUrl": "https://png.pngtree.com/png-clipart/20190619/original/pngtree-vector-picture-icon-png-image_4013511.jpg",
+          "buttonText": "Show",
+          "buttonUrl": "https://example.com/gallery4-3"
+        },
+        {
+          "imageUrl": "https://png.pngtree.com/png-clipart/20190619/original/pngtree-vector-picture-icon-png-image_4013511.jpg",
+          "buttonText": "Show",
+          "buttonUrl": "https://example.com/gallery4-4"
+        },
+        {
+          "imageUrl": "https://png.pngtree.com/png-clipart/20190619/original/pngtree-vector-picture-icon-png-image_4013511.jpg",
+          "buttonText": "Show",
+          "buttonUrl": "https://example.com/gallery4-5"
+        }
+      ]
+    }
+  ],
+  "multi_column_sections": [
+    {
+      "sectionId": "section_1750055982388_2_column_section",
+      "name": "Column Section",
+      "heading": "2 Columns",
+      "columnCount": 2,
+      "columnLayout": "horizontal",
+      "columns": [
+        {
+          "imageUrl": "https://png.pngtree.com/png-clipart/20190619/original/pngtree-vector-picture-icon-png-image_4013511.jpg",
+          "text": "Column 1"
+        },
+        {
+          "imageUrl": "https://png.pngtree.com/png-clipart/20190619/original/pngtree-vector-picture-icon-png-image_4013511.jpg",
+          "text": "Column 2"
+        }
+      ]
+    },
+    {
+      "sectionId": "section_1750055982388_3_column_section",
+      "name": "Column Section",
+      "heading": "3 Columns",
+      "columnCount": 3,
+      "columnLayout": "vertical",
+      "columns": [
+        {
+          "imageUrl": "https://png.pngtree.com/png-clipart/20190619/original/pngtree-vector-picture-icon-png-image_4013511.jpg",
+          "text": "Column 1"
+        },
+        {
+          "imageUrl": "https://png.pngtree.com/png-clipart/20190619/original/pngtree-vector-picture-icon-png-image_4013511.jpg",
+          "text": "Column 2"
+        },
+        {
+          "imageUrl": "https://png.pngtree.com/png-clipart/20190619/original/pngtree-vector-picture-icon-png-image_4013511.jpg",
+          "text": "Column 3"
+        }
+      ]
+    },
+    {
+      "sectionId": "section_1750055982388_4_column_section",
+      "name": "Column Section",
+      "heading": "4 Columns",
+      "columnCount": 4,
+      "columnLayout": "horizontal",
+      "columns": [
+        {
+          "imageUrl": "https://png.pngtree.com/png-clipart/20190619/original/pngtree-vector-picture-icon-png-image_4013511.jpg",
+          "text": "Column 1"
+        },
+        {
+          "imageUrl": "https://png.pngtree.com/png-clipart/20190619/original/pngtree-vector-picture-icon-png-image_4013511.jpg",
+          "text": "Column 2"
+        },
+        {
+          "imageUrl": "https://png.pngtree.com/png-clipart/20190619/original/pngtree-vector-picture-icon-png-image_4013511.jpg",
+          "text": "Column 3"
+        },
+        {
+          "imageUrl": "https://png.pngtree.com/png-clipart/20190619/original/pngtree-vector-picture-icon-png-image_4013511.jpg",
+          "text": "Column 4"
+        }
+      ]
+    },
+    {
+      "sectionId": "section_1750055982388_5_column_section",
+      "name": "Column Section",
+      "heading": "5 Columns",
+      "columnCount": 5,
+      "columnLayout": "vertical",
+      "columns": [
+        {
+          "imageUrl": "https://png.pngtree.com/png-clipart/20190619/original/pngtree-vector-picture-icon-png-image_4013511.jpg",
+          "text": "Column 1"
+        },
+        {
+          "imageUrl": "https://png.pngtree.com/png-clipart/20190619/original/pngtree-vector-picture-icon-png-image_4013511.jpg",
+          "text": "Column 2"
+        },
+        {
+          "imageUrl": "https://png.pngtree.com/png-clipart/20190619/original/pngtree-vector-picture-icon-png-image_4013511.jpg",
+          "text": "Column 3"
+        },
+        {
+          "imageUrl": "https://png.pngtree.com/png-clipart/20190619/original/pngtree-vector-picture-icon-png-image_4013511.jpg",
+          "text": "Column 4"
+        },
+        {
+          "imageUrl": "https://png.pngtree.com/png-clipart/20190619/original/pngtree-vector-picture-icon-png-image_4013511.jpg",
+          "text": "Column 5"
+        }
+      ]
+    }
+  ]
+}
