@@ -1,16 +1,26 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
-import { FiSettings, FiGrid } from "react-icons/fi";
+import { FiSettings, FiGrid, FiTrash2, FiEyeOff, FiEye } from "react-icons/fi";
+import { IoIosArrowUp, IoIosArrowDown } from "react-icons/io";
+import { LuColumns3 } from "react-icons/lu";
+import { GrGallery } from "react-icons/gr";
+import { BsDatabaseAdd, BsImages } from "react-icons/bs";
 import { GoPlusCircle } from "react-icons/go";
-import { BsDatabaseAdd } from "react-icons/bs";
+import { RxDragHandleDots2 } from "react-icons/rx";
 import axios, { AxiosRequestConfig } from "axios";
 import { apiUrl } from "../config";
+import sectionsData from "../../../section.json";
 import {
   DragDropContext,
   Droppable,
   Draggable,
   DropResult,
 } from "@hello-pangea/dnd";
+import {
+  ImageTextPreview,
+  GalleryPreview,
+  MultiColumnPreview,
+} from "../components/sectionPreviews.tsx";
 
 const WebEditor = () => {
   const [activeTab, setActiveTab] = useState<
@@ -18,7 +28,11 @@ const WebEditor = () => {
   >("content");
   const [showSectionPopup, setShowSectionPopup] = useState(false);
   const [addedSections, setAddedSections] = useState<string[]>([]);
+  const [hiddenSections, setHiddenSections] = useState<string[]>([]);
   const [hoveredSection, setHoveredSection] = useState<string | null>(null);
+  const [hoveredSubSection, setHoveredSubSection] = useState<string | null>(
+    null
+  );
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
   const [allSections, setAllSections] = useState<string[]>([]);
   const popupRef = useRef<HTMLDivElement>(null);
@@ -101,59 +115,53 @@ const WebEditor = () => {
     setAddedSections(newSections);
   };
 
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
+
+  const toggleSection = (key: string) => {
+    setOpenSections((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+  };
+
   const renderSectionPreview = (sectionId: string) => {
     switch (sectionId) {
-      case "image_text_sections":
-        return (
-          <div className="flex flex-col border border-slate-400 rounded-md overflow-hidden shadow bg-white mb-4">
-            <div className="flex items-center justify-between p-2">
-              <div className="w-1/2 p-4 bg-gray-100 text-center text-sm">
-                Image Placeholder
-              </div>
-              <div className="w-1/2 p-4">
-                <p className="font-semibold mb-2 text-sm">Heading</p>
-                <p className="text-gray-600 text-xs">
-                  This is a description for the image with text section.
-                </p>
-              </div>
-            </div>
-          </div>
-        );
-      case "gallery_sections":
-        return (
-          <div className="flex flex-col border border-slate-400 bg-gray-100 text-center mb-4 rounded w-full">
-            <div className="p-6">Image Section</div>
-          </div>
-        );
-      case "headingDesc":
-        return (
-          <div className="flex flex-col p-4 bg-white rounded shadow mb-4">
-            <div>
-              <h3 className="text-xl font-bold mb-2">Heading</h3>
-              <p className="text-gray-600">
-                This is a paragraph with description.
-              </p>
-            </div>
-          </div>
-        );
+      case "image_text_section":
+        return <ImageTextPreview />;
       case "multi_column_sections":
-        return (
-          <div className="flex items-center border border-slate-400 rounded-lg w-full bg-white">
-            <div className="flex items-center justify-center gap-2 border-blue-300 w-full p-2">
-              <div className="h-24 w-24 rounded-md flex items-center justify-center bg-gray-100">
-                Image 1
-              </div>
-              <div className="h-24 w-24 rounded-md flex items-center justify-center bg-gray-100">
-                Image 2
-              </div>
-              <div className="h-24 w-24 rounded-md flex items-center justify-center bg-gray-100">
-                Image 3
-              </div>
-            </div>
-          </div>
-        );
+        return <MultiColumnPreview />;
+      case "gallery_sections":
+        return <GalleryPreview heading={hoveredSubSection || "3 Images"} />;
       default:
         return null;
+    }
+  };
+
+  const sectionIcon = (section: string) => {
+    switch (section) {
+      case "image_text_section":
+        return <BsImages />;
+      case "multi_column_sections":
+        return <LuColumns3 />;
+      case "gallery_sections":
+        return <GrGallery />;
+      default:
+        return null;
+    }
+  };
+
+  const handleDeleteSection = (sectionId: string) => {
+    setAddedSections(addedSections.filter((section) => section !== sectionId));
+    setHiddenSections(
+      hiddenSections.filter((section) => section !== sectionId)
+    );
+  };
+
+  const handleHideSection = (sectionId: string) => {
+    if (hiddenSections.includes(sectionId)) {
+      setHiddenSections(hiddenSections.filter((id) => id !== sectionId));
+    } else {
+      setHiddenSections([...hiddenSections, sectionId]);
     }
   };
 
@@ -161,7 +169,7 @@ const WebEditor = () => {
     <div className="h-screen flex text-black w-full overflow-hidden">
       <div
         ref={sidebarRef}
-        className="w-[20%] flex items-start bg-white py-4 relative"
+        className="w-[25%] flex items-start bg-white py-4 relative"
       >
         <div className="flex items-center flex-col gap-4 border-r-[1px] p-2 border-slate-200 w-[25%] h-full">
           {["content", "components", "settings"].map((tab) => (
@@ -199,29 +207,45 @@ const WebEditor = () => {
                           No sections added yet.
                         </p>
                       ) : (
-                        addedSections.map((section, index) => (
-                          <Draggable
-                            key={`${section}-${index}`}
-                            draggableId={`sidebar-${section}-${index}`}
-                            index={index}
-                          >
-                            {(provided, snapshot) => (
-                              <div
-                                ref={provided.innerRef}
-                                {...provided.draggableProps}
-                                {...provided.dragHandleProps}
-                                className={`flex items-center gap-2 w-full p-2 rounded-lg cursor-pointer transition-all duration-300 ${
-                                  snapshot.isDragging
-                                    ? "bg-gray-200 shadow"
-                                    : "hover:bg-gray-100"
-                                }`}
-                              >
-                                <span className="text-gray-500">☰</span>
-                                <span>{formatSectionLabel(section)}</span>
-                              </div>
-                            )}
-                          </Draggable>
-                        ))
+                        addedSections.map((section, index) => {
+                          const isHidden = hiddenSections.includes(section);
+                          return (
+                            <Draggable
+                              key={`${section}-${index}`}
+                              draggableId={`sidebar-${section}-${index}`}
+                              index={index}
+                            >
+                              {(provided, snapshot) => (
+                                <div
+                                  ref={provided.innerRef}
+                                  {...provided.draggableProps}
+                                  {...provided.dragHandleProps}
+                                  className={`flex items-center justify-between gap-2 w-full p-2 rounded-lg cursor-pointer border my-1 border-slate-300 transition-all duration-300 group ${
+                                    snapshot.isDragging
+                                      ? "bg-gray-200 shadow"
+                                      : "hover:bg-gray-100"
+                                  }`}
+                                >
+                                  <div className="flex items-center justify-center">
+                                    <span className="text-gray-500 block group-hover:hidden"> {sectionIcon(section)} </span>
+                                    <span className="text-gray-500 hidden group-hover:block"> <RxDragHandleDots2 /> </span>
+                                    <span className="cursor-pointer ml-1" style={{cursor:"pointer"}}> {formatSectionLabel(section)} </span>
+                                  </div>
+
+                                  <div className="flex items-center justify-center cursor-pointer">
+                                    <button onClick={() => handleDeleteSection(section) } className="hidden group-hover:block text-slate-500 hover:text-red-700 ml-auto cursor-pointer" aria-label="Delete section" title="Delete section" type="button" >
+                                      <FiTrash2 size={15} />
+                                    </button>
+
+                                    <button onClick={() => handleHideSection(section)} className={`ml-2 cursor-pointer group-hover:block hover:bg-gray-100 ${ isHidden ? "block text-gray-400 hover:text-gray-600" : "hidden text-gray-500 hover:text-gray-700" }`} aria-label={ isHidden ? "Show section" : "Hide section" } title={ isHidden ? "Show section" : "Hide section" } type="button" >
+                                      {isHidden ? ( <FiEyeOff size={15} /> ) : ( <FiEye size={15} /> )}
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+                            </Draggable>
+                          );
+                        })
                       )}
                       {provided.placeholder}
                     </div>
@@ -264,17 +288,52 @@ const WebEditor = () => {
                 Sections
               </h4>
               <ul className="space-y-1">
-                {allSections.map((section) => (
-                  <li key={section}>
-                    <button
-                      onClick={() => handleAddSection(section)}
-                      onMouseEnter={() => setHoveredSection(section)}
-                      className="w-full text-left px-3 py-1 text-sm rounded-md text-gray-600 hover:bg-gray-100 cursor-pointer"
-                    >
-                      {formatSectionLabel(section)}
-                    </button>
-                  </li>
-                ))}
+                {Object.entries(sectionsData).map(([key, value]) => {
+                  const isOpen = openSections[key] || false;
+                  const isExpandable = Array.isArray(value) && value.length > 1;
+
+                  return (
+                    <li key={key}>
+                      <button
+                        onClick={() =>
+                          isExpandable
+                            ? toggleSection(key)
+                            : handleAddSection(key)
+                        }
+                        onMouseEnter={() => setHoveredSection(key)}
+                        className="w-full text-left px-3 py-1 text-sm rounded-md text-gray-700 hover:bg-gray-100 flex justify-start items-center cursor-pointer outline-none"
+                      >
+                        <span className="w-4 h-4">{sectionIcon(key)}</span>{" "}
+                        <div className="flex items-center justify-between w-full">
+                          <span className="ml-2">{formatSectionLabel(key)}</span>
+                        {isExpandable && (
+                          <span>
+                            {isOpen ? <IoIosArrowUp /> : <IoIosArrowDown />}
+                          </span>
+                        )}
+                        </div>
+                      </button> 
+
+                      {isOpen && isExpandable && (
+                        <ul className="ml-4 mt-1 space-y-1">
+                          {(value as any[]).map((item) => (
+                            <li key={item.sectionId} className="cursor-pointer">
+                              <button
+                                onClick={() => handleAddSection(item.heading)}
+                                onMouseEnter={() =>
+                                  setHoveredSubSection(item.heading)
+                                }
+                                className="w-full text-left px-3 py-1 text-sm rounded-md text-gray-500 hover:bg-gray-200 cursor-pointer"
+                              >
+                                {item.heading}
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             </div>
             <div
@@ -293,10 +352,11 @@ const WebEditor = () => {
         )}
       </div>
 
-      <div className="w-[80%] p-2 bg-gray-100">
-        {addedSections.length === 0 ? (
+      <div className="w-[75%] p-2 bg-gray-100">
+        {addedSections.filter((section) => !hiddenSections.includes(section))
+          .length === 0 ? (
           <div className="text-center text-gray-400 mt-10">
-            No sections added yet. Click &quot;Add section&quot; to get started.
+            No sections to display. You may have hidden all sections.
           </div>
         ) : (
           <DragDropContext onDragEnd={onDragEnd}>
@@ -307,26 +367,28 @@ const WebEditor = () => {
                   ref={provided.innerRef}
                   className="space-y-4 h-full border border-blue-100 rounded-md shadow-[0_3px_10px_rgb(0,0,0,0.2)] p-2 bg-white overflow-y-auto"
                 >
-                  {addedSections.map((sectionId, index) => (
-                    <Draggable
-                      key={`${sectionId}-${index}`}
-                      draggableId={`${sectionId}-${index}`}
-                      index={index}
-                    >
-                      {(provided, snapshot) => (
-                        <div
-                          ref={provided.innerRef}
-                          {...provided.draggableProps}
-                          {...provided.dragHandleProps}
-                          className={`rounded ${
-                            snapshot.isDragging ? "shadow-lg" : ""
-                          }`}
-                        >
-                          {renderSectionPreview(sectionId)}
-                        </div>
-                      )}
-                    </Draggable>
-                  ))}
+                  {addedSections
+                    .filter((sectionId) => !hiddenSections.includes(sectionId))
+                    .map((sectionId, index) => (
+                      <Draggable
+                        key={`${sectionId}-${index}`}
+                        draggableId={`${sectionId}-${index}`}
+                        index={index}
+                      >
+                        {(provided, snapshot) => (
+                          <div
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                            {...provided.dragHandleProps}
+                            className={`rounded ${
+                              snapshot.isDragging ? "shadow-lg" : ""
+                            }`}
+                          >
+                            {renderSectionPreview(sectionId)}
+                          </div>
+                        )}
+                      </Draggable>
+                    ))}
                   {provided.placeholder}
                 </div>
               )}
