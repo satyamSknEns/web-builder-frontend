@@ -1,5 +1,5 @@
 const Gallery4Images = () => (
-  <div className="flex gap-2 p-4 bg-white rounded border">
+  <div className="flex gap-2 p-4 border border-slate-400 rounded-md overflow-hidden shadow bg-white mb-4">
     {[1, 2, 3, 4].map((i) => (
       <div
         key={i}

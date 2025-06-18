@@ -1,6 +1,6 @@
 "use client";
-import React, { useState, useEffect, useRef } from "react";
-import { FiSettings, FiGrid, FiTrash2, FiEyeOff, FiEye } from "react-icons/fi";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { FiSettings, FiGrid, FiTrash2, FiEyeOff, FiEye, FiRotateCcw, FiRotateCw } from "react-icons/fi";
 import { IoIosArrowUp, IoIosArrowDown } from "react-icons/io";
 import { LuColumns3 } from "react-icons/lu";
 import { GrGallery } from "react-icons/gr";
@@ -22,21 +22,36 @@ import {
   MultiColumnPreview,
 } from "../components/sectionPreviews.tsx";
 
+interface AddedSection {
+  id: string;
+  sectionId: string;
+}
+
+interface EditorState {
+  addedSections: AddedSection[];
+  hiddenSections: string[];
+}
+
 const WebEditor = () => {
   const [activeTab, setActiveTab] = useState<
     "settings" | "content" | "components"
   >("content");
   const [showSectionPopup, setShowSectionPopup] = useState(false);
-  const [addedSections, setAddedSections] = useState<string[]>([]);
+  const [addedSections, setAddedSections] = useState<AddedSection[]>([]);
   const [hiddenSections, setHiddenSections] = useState<string[]>([]);
   const [hoveredSection, setHoveredSection] = useState<string | null>(null);
-  const [hoveredSubSection, setHoveredSubSection] = useState<string | null>(
-    null
-  );
-  const [selectedSection, setSelectedSection] = useState<string | null>(null);
+  const [hoveredSubSection, setHoveredSubSection] = useState<string | null>(null);
   const [allSections, setAllSections] = useState<string[]>([]);
-  const popupRef = useRef<HTMLDivElement>(null);
+  const [undoStack, setUndoStack] = useState<EditorState[]>([]);
+  const [redoStack, setRedoStack] = useState<EditorState[]>([]);
   const sidebarRef = useRef<HTMLDivElement>(null);
+  const popupRef = useRef<HTMLDivElement>(null);
+
+  const uniqueIdRef = React.useRef(0);
+  const generateUniqueId = () => {
+    uniqueIdRef.current += 1;
+    return `added-section-${uniqueIdRef.current}`;
+  };
 
   const getAllSections = async () => {
     const config: AxiosRequestConfig = {
@@ -68,11 +83,31 @@ const WebEditor = () => {
     return formatedSection.charAt(0).toUpperCase() + formatedSection.slice(1);
   };
 
+  const pushToUndoStack = (prevState: EditorState) => {
+    setUndoStack((prev) => [...prev, prevState]);
+    setRedoStack([]); 
+  };
+
+  const currentEditorState = (): EditorState => ({
+    addedSections,
+    hiddenSections,
+  });
+
   const handleAddSection = (sectionId: string) => {
-    setAddedSections([...addedSections, sectionId]);
+    const newAddedSection: AddedSection = {
+      id: generateUniqueId(),
+      sectionId,
+    };
+    pushToUndoStack(currentEditorState());
+    setAddedSections([...addedSections, newAddedSection]);
     setShowSectionPopup(false);
     setHoveredSection(null);
-    setSelectedSection(null);
+  };
+
+  const handleDeleteSection = (instanceId: string) => {
+    pushToUndoStack(currentEditorState());
+    setAddedSections((prev) => prev.filter((section) => section.id !== instanceId));
+    setHiddenSections((prev) => prev.filter((id) => id !== instanceId));
   };
 
   const togglePopup = () => {
@@ -80,7 +115,6 @@ const WebEditor = () => {
       const newState = !prev;
       if (!newState) {
         setHoveredSection(null);
-        setSelectedSection(null);
       }
       return newState;
     });
@@ -92,8 +126,8 @@ const WebEditor = () => {
         popupRef.current &&
         !popupRef.current.contains(event.target as Node)
       ) {
+        setShowSectionPopup(false);
         setHoveredSection(null);
-        setSelectedSection(null);
       }
     };
 
@@ -109,6 +143,9 @@ const WebEditor = () => {
   const onDragEnd = (result: DropResult) => {
     const { destination, source } = result;
     if (!destination) return;
+    if (destination.index === source.index) return;
+
+    pushToUndoStack(currentEditorState());
     const newSections = Array.from(addedSections);
     const [movedItem] = newSections.splice(source.index, 1);
     newSections.splice(destination.index, 0, movedItem);
@@ -150,20 +187,63 @@ const WebEditor = () => {
     }
   };
 
-  const handleDeleteSection = (sectionId: string) => {
-    setAddedSections(addedSections.filter((section) => section !== sectionId));
-    setHiddenSections(
-      hiddenSections.filter((section) => section !== sectionId)
-    );
-  };
-
-  const handleHideSection = (sectionId: string) => {
-    if (hiddenSections.includes(sectionId)) {
-      setHiddenSections(hiddenSections.filter((id) => id !== sectionId));
+  const handleHideSection = (instanceId: string) => {
+    pushToUndoStack(currentEditorState());
+    if (hiddenSections.includes(instanceId)) {
+      setHiddenSections(hiddenSections.filter((id) => id !== instanceId));
     } else {
-      setHiddenSections([...hiddenSections, sectionId]);
+      setHiddenSections([...hiddenSections, instanceId]);
     }
   };
+
+  const handleUndo = useCallback(() => {
+    if (undoStack.length === 0) return;
+    const previousState = undoStack[undoStack.length - 1];
+    setRedoStack((prev) => [...prev, currentEditorState()]);
+    setUndoStack((prev) => prev.slice(0, prev.length - 1));
+
+    setAddedSections(previousState.addedSections);
+    setHiddenSections(previousState.hiddenSections);
+  }, [undoStack, currentEditorState]);
+
+  const handleRedo = useCallback(() => {
+    if (redoStack.length === 0) return;
+    const nextState = redoStack[redoStack.length - 1];
+    setUndoStack((prev) => [...prev, currentEditorState()]);
+    setRedoStack((prev) => prev.slice(0, prev.length - 1));
+
+    setAddedSections(nextState.addedSections);
+    setHiddenSections(nextState.hiddenSections);
+  }, [redoStack, currentEditorState]);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        target.isContentEditable ||
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA"
+      ) {
+        return;
+      }
+
+      const isCtrlOrCmd = e.ctrlKey || e.metaKey;
+      if (!isCtrlOrCmd) return;
+
+      if (e.key.toLowerCase() === "z") {
+        e.preventDefault();
+        handleUndo();
+      } else if (e.key.toLowerCase() === "y") {
+        e.preventDefault();
+        handleRedo();
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [handleUndo, handleRedo]);
 
   return (
     <div className="h-screen flex text-black w-full overflow-hidden">
@@ -172,6 +252,33 @@ const WebEditor = () => {
         className="w-[25%] flex items-start bg-white py-4 relative"
       >
         <div className="flex items-center flex-col gap-4 border-r-[1px] p-2 border-slate-200 w-[25%] h-full">
+          <button
+            onClick={handleUndo}
+            disabled={undoStack.length === 0}
+            title="Undo (Ctrl+Z)"
+            aria-label="Undo"
+            className={`flex items-center justify-center gap-1 rounded-md p-1 max-w-8 max-h-8 ${
+              undoStack.length === 0
+                ? "opacity-40 cursor-not-allowed"
+                : "hover:bg-gray-200 cursor-pointer"
+            }`}
+          >
+            <FiRotateCcw className="m-1" size={20} />
+          </button>
+          <button
+            onClick={handleRedo}
+            disabled={redoStack.length === 0}
+            title="Redo (Ctrl+Y)"
+            aria-label="Redo"
+            className={`flex items-center justify-center gap-1 rounded-md p-1 max-w-8 max-h-8 ${
+              redoStack.length === 0
+                ? "opacity-40 cursor-not-allowed"
+                : "hover:bg-gray-200 cursor-pointer"
+            }`}
+          >
+            <FiRotateCw className="m-1" size={20} />
+          </button>
+
           {["content", "components", "settings"].map((tab) => (
             <button
               key={tab}
@@ -207,12 +314,12 @@ const WebEditor = () => {
                           No sections added yet.
                         </p>
                       ) : (
-                        addedSections.map((section, index) => {
-                          const isHidden = hiddenSections.includes(section);
+                        addedSections.map(({ id, sectionId }, index) => {
+                          const isHidden = hiddenSections.includes(id);
                           return (
                             <Draggable
-                              key={`${section}-${index}`}
-                              draggableId={`sidebar-${section}-${index}`}
+                              key={`${id}-${index}`}
+                              draggableId={`sidebar-${id}-${index}`}
                               index={index}
                             >
                               {(provided, snapshot) => (
@@ -227,18 +334,50 @@ const WebEditor = () => {
                                   }`}
                                 >
                                   <div className="flex items-center justify-center">
-                                    <span className="text-gray-500 block group-hover:hidden"> {sectionIcon(section)} </span>
-                                    <span className="text-gray-500 hidden group-hover:block"> <RxDragHandleDots2 /> </span>
-                                    <span className="cursor-pointer ml-1" style={{cursor:"pointer"}}> {formatSectionLabel(section)} </span>
+                                    <span className="text-gray-500 block group-hover:hidden">
+                                      {" "}
+                                      {sectionIcon(sectionId)}{" "}
+                                    </span>
+                                    <span className="text-gray-500 hidden group-hover:block">
+                                      {" "}
+                                      <RxDragHandleDots2 />{" "}
+                                    </span>
+                                    <span className="cursor-pointer ml-1">
+                                      {formatSectionLabel(sectionId)}
+                                    </span>
                                   </div>
 
                                   <div className="flex items-center justify-center cursor-pointer">
-                                    <button onClick={() => handleDeleteSection(section) } className="hidden group-hover:block text-slate-500 hover:text-red-700 ml-auto cursor-pointer" aria-label="Delete section" title="Delete section" type="button" >
+                                    <button
+                                      onClick={() => handleDeleteSection(id)}
+                                      className="hidden group-hover:block text-slate-500 hover:text-red-700 ml-auto cursor-pointer"
+                                      aria-label="Delete section"
+                                      title="Delete section"
+                                      type="button"
+                                    >
                                       <FiTrash2 size={15} />
                                     </button>
 
-                                    <button onClick={() => handleHideSection(section)} className={`ml-2 cursor-pointer group-hover:block hover:bg-gray-100 ${ isHidden ? "block text-gray-400 hover:text-gray-600" : "hidden text-gray-500 hover:text-gray-700" }`} aria-label={ isHidden ? "Show section" : "Hide section" } title={ isHidden ? "Show section" : "Hide section" } type="button" >
-                                      {isHidden ? ( <FiEyeOff size={15} /> ) : ( <FiEye size={15} /> )}
+                                    <button
+                                      onClick={() => handleHideSection(id)}
+                                      className={`ml-2 cursor-pointer group-hover:block hover:bg-gray-100 ${
+                                        isHidden
+                                          ? "block text-gray-400 hover:text-gray-600"
+                                          : "hidden text-gray-500 hover:text-gray-700"
+                                      }`}
+                                      aria-label={
+                                        isHidden ? "Show section" : "Hide section"
+                                      }
+                                      title={
+                                        isHidden ? "Show section" : "Hide section"
+                                      }
+                                      type="button"
+                                    >
+                                      {isHidden ? (
+                                        <FiEyeOff size={15} />
+                                      ) : (
+                                        <FiEye size={15} />
+                                      )}
                                     </button>
                                   </div>
                                 </div>
@@ -305,14 +444,16 @@ const WebEditor = () => {
                       >
                         <span className="w-4 h-4">{sectionIcon(key)}</span>{" "}
                         <div className="flex items-center justify-between w-full">
-                          <span className="ml-2">{formatSectionLabel(key)}</span>
-                        {isExpandable && (
-                          <span>
-                            {isOpen ? <IoIosArrowUp /> : <IoIosArrowDown />}
+                          <span className="ml-2">
+                            {formatSectionLabel(key)}
                           </span>
-                        )}
+                          {isExpandable && (
+                            <span>
+                              {isOpen ? <IoIosArrowUp /> : <IoIosArrowDown />}
+                            </span>
+                          )}
                         </div>
-                      </button> 
+                      </button>
 
                       {isOpen && isExpandable && (
                         <ul className="ml-4 mt-1 space-y-1">
@@ -353,7 +494,7 @@ const WebEditor = () => {
       </div>
 
       <div className="w-[75%] p-2 bg-gray-100">
-        {addedSections.filter((section) => !hiddenSections.includes(section))
+        {addedSections.filter(({ id }) => !hiddenSections.includes(id))
           .length === 0 ? (
           <div className="text-center text-gray-400 mt-10">
             No sections to display. You may have hidden all sections.
@@ -367,12 +508,12 @@ const WebEditor = () => {
                   ref={provided.innerRef}
                   className="space-y-4 h-full border border-blue-100 rounded-md shadow-[0_3px_10px_rgb(0,0,0,0.2)] p-2 bg-white overflow-y-auto"
                 >
-                  {addedSections
-                    .filter((sectionId) => !hiddenSections.includes(sectionId))
-                    .map((sectionId, index) => (
+                  {addedSections.map(({ id, sectionId }, index) => {
+                    const isHidden = hiddenSections.includes(id);
+                    return (
                       <Draggable
-                        key={`${sectionId}-${index}`}
-                        draggableId={`${sectionId}-${index}`}
+                        key={`${id}-${index}`}
+                        draggableId={`${id}-${index}`}
                         index={index}
                       >
                         {(provided, snapshot) => (
@@ -380,6 +521,10 @@ const WebEditor = () => {
                             ref={provided.innerRef}
                             {...provided.draggableProps}
                             {...provided.dragHandleProps}
+                            style={{
+                              display: isHidden ? "none" : undefined,
+                              ...provided.draggableProps.style,
+                            }}
                             className={`rounded ${
                               snapshot.isDragging ? "shadow-lg" : ""
                             }`}
@@ -388,7 +533,8 @@ const WebEditor = () => {
                           </div>
                         )}
                       </Draggable>
-                    ))}
+                    );
+                  })}
                   {provided.placeholder}
                 </div>
               )}
