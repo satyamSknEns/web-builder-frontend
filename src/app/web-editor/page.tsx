@@ -12,7 +12,7 @@ import { RxDragHandleDots2 } from "react-icons/rx";
 import axios, { AxiosRequestConfig } from "axios";
 import sectionsData from "../../../section.json";
 import { apiUrl } from "../config";
-import { ImageTextPreview, GalleryPreview, ColumnsPreview, } from "../components/sectionPreviews.tsx";
+import { ImageTextPreview, GalleryPreview, ColumnsPreview, } from "../components/sectionPreviews";
 
 interface AddedSection {
   id: string;
