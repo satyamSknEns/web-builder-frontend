@@ -1,20 +1,16 @@
-import { JSX } from "react";
-import Gallery3Images from "./Gallery/Gallery3Images";
-import Gallery4Images from "./Gallery/Gallery4Images";
-import Gallery5Images from "./Gallery/Gallery5Images";
+import React from "react";
 
-const galleryMap: Record<string, JSX.Element> = {
-  "3 Images": <Gallery3Images />,
-  "4 Images": <Gallery4Images />,
-  "5 Images": <Gallery5Images />
-};
-
-const GalleryPreview = ({ heading }: { heading: string }) => {
-  return (
-    galleryMap[heading] || (
-      <p className="text-gray-400">Invalid Gallery Preview</p>
-    )
-  );
-};
+const GalleryPreview = () => (
+  <div className="flex gap-2 p-2 border border-slate-400 rounded-md overflow-hidden shadow bg-white mb-4 w-full">
+    {[1, 2, 3].map((i) => (
+      <div
+        key={i}
+        className="w-1/2 h-24 rounded-md bg-gray-200 flex items-center justify-center"
+      >
+        Image {i}
+      </div>
+    ))}
+  </div>
+);
 
 export default GalleryPreview;
