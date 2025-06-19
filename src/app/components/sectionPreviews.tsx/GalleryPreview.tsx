@@ -10,7 +10,6 @@ const galleryMap: Record<string, JSX.Element> = {
 };
 
 const GalleryPreview = ({ heading }: { heading: string }) => {
-  console.log("heading", heading);
   return (
     galleryMap[heading] || (
       <p className="text-gray-400">Invalid Gallery Preview</p>

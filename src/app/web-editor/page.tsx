@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { FiSettings, FiGrid, FiTrash2, FiEyeOff, FiEye, FiRotateCcw, FiRotateCw } from "react-icons/fi";
+import { FiSettings, FiGrid, FiTrash2, FiEyeOff, FiEye, FiRotateCcw, FiRotateCw,FiColumns } from "react-icons/fi";
+import { GrColumns } from "react-icons/gr";
 import { IoIosArrowUp, IoIosArrowDown } from "react-icons/io";
 import { LuColumns3 } from "react-icons/lu";
 import { GrGallery } from "react-icons/gr";
@@ -10,17 +11,8 @@ import { RxDragHandleDots2 } from "react-icons/rx";
 import axios, { AxiosRequestConfig } from "axios";
 import { apiUrl } from "../config";
 import sectionsData from "../../../section.json";
-import {
-  DragDropContext,
-  Droppable,
-  Draggable,
-  DropResult,
-} from "@hello-pangea/dnd";
-import {
-  ImageTextPreview,
-  GalleryPreview,
-  MultiColumnPreview,
-} from "../components/sectionPreviews.tsx";
+import { DragDropContext, Droppable, Draggable, DropResult, } from "@hello-pangea/dnd";
+import { ImageTextPreview, GalleryPreview, ColumnsPreview, } from "../components/sectionPreviews.tsx";
 
 interface AddedSection {
   id: string;
@@ -40,7 +32,9 @@ const WebEditor = () => {
   const [addedSections, setAddedSections] = useState<AddedSection[]>([]);
   const [hiddenSections, setHiddenSections] = useState<string[]>([]);
   const [hoveredSection, setHoveredSection] = useState<string | null>(null);
-  const [hoveredSubSection, setHoveredSubSection] = useState<string | null>(null);
+  const [hoveredSubSection, setHoveredSubSection] = useState<string | null>(
+    null
+  );
   const [allSections, setAllSections] = useState<string[]>([]);
   const [undoStack, setUndoStack] = useState<EditorState[]>([]);
   const [redoStack, setRedoStack] = useState<EditorState[]>([]);
@@ -85,13 +79,10 @@ const WebEditor = () => {
 
   const pushToUndoStack = (prevState: EditorState) => {
     setUndoStack((prev) => [...prev, prevState]);
-    setRedoStack([]); 
+    setRedoStack([]);
   };
 
-  const currentEditorState = (): EditorState => ({
-    addedSections,
-    hiddenSections,
-  });
+  const currentEditorState = (): EditorState => ({ addedSections, hiddenSections, });
 
   const handleAddSection = (sectionId: string) => {
     const newAddedSection: AddedSection = {
@@ -103,42 +94,42 @@ const WebEditor = () => {
     setShowSectionPopup(false);
     setHoveredSection(null);
   };
+  console.log("addedSections",addedSections)
 
   const handleDeleteSection = (instanceId: string) => {
     pushToUndoStack(currentEditorState());
-    setAddedSections((prev) => prev.filter((section) => section.id !== instanceId));
+    setAddedSections((prev) =>
+      prev.filter((section) => section.id !== instanceId)
+    );
     setHiddenSections((prev) => prev.filter((id) => id !== instanceId));
   };
 
-  const togglePopup = () => {
-    setShowSectionPopup((prev) => {
-      const newState = !prev;
-      if (!newState) {
-        setHoveredSection(null);
-      }
-      return newState;
-    });
-  };
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  const ignoreNextClick = useRef(false);
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        popupRef.current &&
-        !popupRef.current.contains(event.target as Node)
-      ) {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      
+      if (buttonRef.current?.contains(target)) {
+        ignoreNextClick.current = true;
+        return;
+      }
+
+      if (popupRef.current && !popupRef.current.contains(target)) {
         setShowSectionPopup(false);
         setHoveredSection(null);
       }
     };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
-    if (showSectionPopup) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [showSectionPopup]);
+  const togglePopup = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowSectionPopup((prev) => !prev);
+  };
 
   const onDragEnd = (result: DropResult) => {
     const { destination, source } = result;
@@ -165,8 +156,12 @@ const WebEditor = () => {
     switch (sectionId) {
       case "image_text_section":
         return <ImageTextPreview />;
-      case "multi_column_sections":
-        return <MultiColumnPreview />;
+      case "2_column_section":
+        return <ColumnsPreview heading="2 Columns" />;
+      case "3_column_section":
+        return <ColumnsPreview heading="3 Columns" />;
+      case "4_column_section":
+        return <ColumnsPreview heading="4 Columns" />;
       case "gallery_sections":
         return <GalleryPreview heading={hoveredSubSection || "3 Images"} />;
       default:
@@ -178,8 +173,12 @@ const WebEditor = () => {
     switch (section) {
       case "image_text_section":
         return <BsImages />;
-      case "multi_column_sections":
+      case "2_column_section":
+        return <FiColumns />;
+      case "3_column_section":
         return <LuColumns3 />;
+      case "4_column_section":
+        return <GrColumns />;
       case "gallery_sections":
         return <GrGallery />;
       default:
@@ -366,10 +365,14 @@ const WebEditor = () => {
                                           : "hidden text-gray-500 hover:text-gray-700"
                                       }`}
                                       aria-label={
-                                        isHidden ? "Show section" : "Hide section"
+                                        isHidden
+                                          ? "Show section"
+                                          : "Hide section"
                                       }
                                       title={
-                                        isHidden ? "Show section" : "Hide section"
+                                        isHidden
+                                          ? "Show section"
+                                          : "Hide section"
                                       }
                                       type="button"
                                     >
@@ -388,15 +391,14 @@ const WebEditor = () => {
                       )}
                       {provided.placeholder}
                     </div>
-                    <div
-                      className="flex w-full hover:bg-gray-200 cursor-pointer rounded-lg transition-all ease-in-out duration-300 border border-slate-200"
-                      onClick={togglePopup}
-                    >
-                      <button className="flex items-center text-sm cursor-pointer outline-none gap-2 px-2 py-1.5 text-blue-700 rounded">
+                      <button
+                        className="w-full hover:bg-gray-200 rounded-lg transition-all ease-in-out duration-300 border border-slate-200 flex items-center text-sm cursor-pointer outline-none gap-2 px-2 py-1.5 text-blue-700"
+                        ref={buttonRef}
+                        onClick={togglePopup}
+                      >
                         <GoPlusCircle />
                         Add section
                       </button>
-                    </div>
                   </div>
                 )}
               </Droppable>
@@ -416,6 +418,7 @@ const WebEditor = () => {
             className={`mt-4 rounded-lg border-blue-400 shadow-[0_3px_10px_rgb(0,0,0,0.2)] md:w-[600px] h-[360px] overflow-y-hidden flex z-10 absolute left-full bottom-1 right-0  ${
               activeTab === "content" && showSectionPopup ? "slide-top" : ""
             }`}
+            onClick={(e) => e.stopPropagation()}
           >
             <div className="overflow-y-scroll h-full w-[35%] bg-white p-2">
               <input
