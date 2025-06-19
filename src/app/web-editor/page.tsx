@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { DragDropContext, Droppable, Draggable, DropResult, } from "@hello-pangea/dnd";
 import { FiSettings, FiGrid, FiTrash2, FiEyeOff, FiEye, FiRotateCcw, FiRotateCw,FiColumns } from "react-icons/fi";
 import { GrColumns } from "react-icons/gr";
 import { IoIosArrowUp, IoIosArrowDown } from "react-icons/io";
@@ -9,9 +10,8 @@ import { BsDatabaseAdd, BsImages } from "react-icons/bs";
 import { GoPlusCircle } from "react-icons/go";
 import { RxDragHandleDots2 } from "react-icons/rx";
 import axios, { AxiosRequestConfig } from "axios";
-import { apiUrl } from "../config";
 import sectionsData from "../../../section.json";
-import { DragDropContext, Droppable, Draggable, DropResult, } from "@hello-pangea/dnd";
+import { apiUrl } from "../config";
 import { ImageTextPreview, GalleryPreview, ColumnsPreview, } from "../components/sectionPreviews.tsx";
 
 interface AddedSection {
@@ -163,7 +163,7 @@ const WebEditor = () => {
       case "4_column_section":
         return <ColumnsPreview heading="4 Columns" />;
       case "gallery_sections":
-        return <GalleryPreview heading={hoveredSubSection || "3 Images"} />;
+        return <GalleryPreview />;
       default:
         return null;
     }
