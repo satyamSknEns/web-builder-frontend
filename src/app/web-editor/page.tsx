@@ -13,6 +13,7 @@ import axios, { AxiosRequestConfig } from "axios";
 import sectionsData from "../../../section.json";
 import { apiUrl } from "../config";
 import { ImageTextPreview, GalleryPreview, ColumnsPreview, } from "../components/sectionPreviews";
+import Header from "./header/Header";
 
 interface AddedSection {
   id: string;
@@ -38,6 +39,8 @@ const WebEditor = () => {
   const [allSections, setAllSections] = useState<string[]>([]);
   const [undoStack, setUndoStack] = useState<EditorState[]>([]);
   const [redoStack, setRedoStack] = useState<EditorState[]>([]);
+  const [pages] = useState(["Home", "About", "Contact"]); 
+  const [selectedPage, setSelectedPage] = useState(pages[0]);
   const sidebarRef = useRef<HTMLDivElement>(null);
   const popupRef = useRef<HTMLDivElement>(null);
 
@@ -244,9 +247,24 @@ const WebEditor = () => {
     };
   }, [handleUndo, handleRedo]);
 
+  const handleSave = () => {
+    console.log("Save clicked");
+  };
+
   return (
-    <div className="h-screen flex text-black w-full overflow-hidden">
-      <div
+    <div className="h-screen flex flex-col text-black w-full overflow-hidden">
+      <Header
+        pages={pages}
+        selectedPage={selectedPage}
+        onSelectPage={setSelectedPage}
+        onUndo={handleUndo}
+        onRedo={handleRedo}
+        onSave={handleSave}
+        undoStack={undoStack}
+        redoStack={redoStack}
+      />
+      <div className="flex item-center justify-center h-screen">
+        <div
         ref={sidebarRef}
         className="w-[25%] flex items-start bg-white py-4 relative"
       >
@@ -544,6 +562,7 @@ const WebEditor = () => {
             </Droppable>
           </DragDropContext>
         )}
+      </div>
       </div>
     </div>
   );
