@@ -263,7 +263,7 @@ const WebEditor = () => {
         undoStack={undoStack}
         redoStack={redoStack}
       />
-      <div className="flex item-center justify-center h-screen">
+      <div className="flex item-center justify-center h-[90vh]">
         <div
         ref={sidebarRef}
         className="w-[25%] flex items-start bg-white py-4 relative"
