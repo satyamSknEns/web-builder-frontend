@@ -1,7 +1,7 @@
 {
   "image_text_section": [
     {
-      "sectionId": "section_image_with_text",
+      "sectionId": "image_with_text",
       "name": "Image With Text",
       "heading": "Write here heading of the section",
       "imageUrl": "https://png.pngtree.com/png-clipart/20190619/original/pngtree-vector-picture-icon-png-image_4013511.jpg",
@@ -12,7 +12,7 @@
   ],
   "gallery_sections": [
     {
-      "sectionId": "gallery_section_3_images",
+      "sectionId": "gallery_3_images",
       "name": "Gallery Section",
       "heading": "3 Images",
       "imageCount": 3,
@@ -38,7 +38,7 @@
   ],
   "2_column_section": [
     {
-      "sectionId": "section_2_column_section",
+      "sectionId": "2_column_section",
       "name": "Column Section",
       "heading": "2 Columns",
       "columnCount": 2,
@@ -57,7 +57,7 @@
   ],
   "3_column_section": [
     {
-      "sectionId": "section_3_column_section",
+      "sectionId": "3_column_section",
       "name": "Column Section",
       "heading": "3 Columns",
       "columnCount": 3,
@@ -80,7 +80,7 @@
   ],
   "4_column_section": [
     {
-      "sectionId": "section_4_column_section",
+      "sectionId": "onClick={() => setSelectedSection({ id, sectionId })}4_column_section",
       "name": "Column Section",
       "heading": "4 Columns",
       "columnCount": 4,

@@ -45,6 +45,10 @@ const WebEditor = () => {
   const popupRef = useRef<HTMLDivElement>(null);
 
   const uniqueIdRef = React.useRef(0);
+  const [selectedSection, setSelectedSection] = useState<AddedSection | null>(null);
+const [sectionContent, setSectionContent] = useState<{ [key: string]: any }>({});
+
+
   const generateUniqueId = () => {
     uniqueIdRef.current += 1;
     return `added-section-${uniqueIdRef.current}`;
@@ -92,6 +96,11 @@ const WebEditor = () => {
       id: generateUniqueId(),
       sectionId,
     };
+    setSectionContent((prev) => ({
+    ...prev,
+    [newAddedSection.id]: { /* default content based on sectionId */ },
+  }));
+
     pushToUndoStack(currentEditorState());
     setAddedSections([...addedSections, newAddedSection]);
     setShowSectionPopup(false);
@@ -105,6 +114,11 @@ const WebEditor = () => {
       prev.filter((section) => section.id !== instanceId)
     );
     setHiddenSections((prev) => prev.filter((id) => id !== instanceId));
+    setSectionContent((prev) => {
+    const newContent = { ...prev };
+    delete newContent[instanceId];
+    return newContent;
+  });
   };
 
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -269,33 +283,6 @@ const WebEditor = () => {
         className="w-[25%] flex items-start bg-white py-4 relative"
       >
         <div className="flex items-center flex-col gap-4 border-r-[1px] p-2 border-slate-200 w-[25%] h-full">
-          <button
-            onClick={handleUndo}
-            disabled={undoStack.length === 0}
-            title="Undo (Ctrl+Z)"
-            aria-label="Undo"
-            className={`flex items-center justify-center gap-1 rounded-md p-1 max-w-8 max-h-8 ${
-              undoStack.length === 0
-                ? "opacity-40 cursor-not-allowed"
-                : "hover:bg-gray-200 cursor-pointer"
-            }`}
-          >
-            <FiRotateCcw className="m-1" size={20} />
-          </button>
-          <button
-            onClick={handleRedo}
-            disabled={redoStack.length === 0}
-            title="Redo (Ctrl+Y)"
-            aria-label="Redo"
-            className={`flex items-center justify-center gap-1 rounded-md p-1 max-w-8 max-h-8 ${
-              redoStack.length === 0
-                ? "opacity-40 cursor-not-allowed"
-                : "hover:bg-gray-200 cursor-pointer"
-            }`}
-          >
-            <FiRotateCw className="m-1" size={20} />
-          </button>
-
           {["content", "components", "settings"].map((tab) => (
             <button
               key={tab}
@@ -316,112 +303,131 @@ const WebEditor = () => {
         </div>
 
         <div className="w-[75%] px-2 flex h-full mx-auto ">
-          {activeTab === "content" && (
-            <DragDropContext onDragEnd={onDragEnd}>
-              <Droppable droppableId="sidebar-section-list">
-                {(provided) => (
-                  <div
-                    className="w-full flex items-center flex-col justify-between"
-                    {...provided.droppableProps}
-                    ref={provided.innerRef}
-                  >
-                    <div className="flex flex-col mt-8 w-full text-xs">
-                      {addedSections.length === 0 ? (
-                        <p className="text-gray-400 p-2">
-                          No sections added yet.
-                        </p>
-                      ) : (
-                        addedSections.map(({ id, sectionId }, index) => {
-                          const isHidden = hiddenSections.includes(id);
-                          return (
-                            <Draggable
-                              key={`${id}-${index}`}
-                              draggableId={`sidebar-${id}-${index}`}
-                              index={index}
-                            >
-                              {(provided, snapshot) => (
-                                <div
-                                  ref={provided.innerRef}
-                                  {...provided.draggableProps}
-                                  {...provided.dragHandleProps}
-                                  className={`flex items-center justify-between gap-2 w-full p-2 rounded-lg cursor-pointer border my-1 border-slate-300 transition-all duration-300 group ${
-                                    snapshot.isDragging
-                                      ? "bg-gray-200 shadow"
-                                      : "hover:bg-gray-100"
-                                  }`}
-                                >
-                                  <div className="flex items-center justify-center">
-                                    <span className="text-gray-500 block group-hover:hidden">
-                                      {" "}
-                                      {sectionIcon(sectionId)}{" "}
-                                    </span>
-                                    <span className="text-gray-500 hidden group-hover:block">
-                                      {" "}
-                                      <RxDragHandleDots2 />{" "}
-                                    </span>
-                                    <span className="cursor-pointer ml-1">
-                                      {formatSectionLabel(sectionId)}
-                                    </span>
-                                  </div>
+          {activeTab === "content" && (<>
+            {/* {selectedSection ? (
+              <div className="mt-4">
+              <h3 className="text-lg font-semibold">{formatSectionLabel(selectedSection.sectionId)}</h3>
+              <input
+                type="text"
+                value={sectionContent[selectedSection.id]?.text || ""}
+                onChange={(e) => setSectionContent((prev) => ({
+                  ...prev,
+                  [selectedSection.id]: { ...prev[selectedSection.id], text: e.target.value },
+                }))}
+                placeholder="Update text content"
+                className="w-full border border-slate-300 rounded-lg py-1.5 px-2 text-gray-600"
+              />
+            </div>
+            ) : ( */}
+              <DragDropContext onDragEnd={onDragEnd}>
+                <Droppable droppableId="sidebar-section-list">
+                  {(provided) => (
+                    <div
+                      className="w-full flex items-center flex-col justify-between"
+                      {...provided.droppableProps}
+                      ref={provided.innerRef}
+                    >
+                      <div className="flex flex-col mt-8 w-full text-xs">
+                        {addedSections.length === 0 ? (
+                          <p className="text-gray-400 p-2">
+                            No sections added yet.
+                          </p>
+                        ) : (
+                          addedSections.map(({ id, sectionId }, index) => {
+                            const isHidden = hiddenSections.includes(id);
+                            return (
+                              <Draggable
+                                key={`${id}-${index}`}
+                                draggableId={`sidebar-${id}-${index}`}
+                                index={index}
+                              >
+                                {(provided, snapshot) => (
+                                  <div
+                                    ref={provided.innerRef}
+                                    {...provided.draggableProps}
+                                    {...provided.dragHandleProps}
+                                    className={`flex items-center justify-between gap-2 w-full p-2 rounded-lg cursor-pointer border my-1 border-slate-300 transition-all duration-300 group ${
+                                      snapshot.isDragging
+                                        ? "bg-gray-200 shadow"
+                                        : "hover:bg-gray-100"
+                                    }`}
+                                    onClick={() => setSelectedSection({ id, sectionId })}
+                                  >
+                                    <div className="flex items-center justify-center">
+                                      <span className="text-gray-500 block group-hover:hidden">
+                                        {" "}
+                                        {sectionIcon(sectionId)}{" "}
+                                      </span>
+                                      <span className="text-gray-500 hidden group-hover:block">
+                                        {" "}
+                                        <RxDragHandleDots2 />{" "}
+                                      </span>
+                                      <span className="cursor-pointer ml-1">
+                                        {formatSectionLabel(sectionId)}
+                                      </span>
+                                    </div>
 
-                                  <div className="flex items-center justify-center cursor-pointer">
-                                    <button
-                                      onClick={() => handleDeleteSection(id)}
-                                      className="hidden group-hover:block text-slate-500 hover:text-red-700 ml-auto cursor-pointer"
-                                      aria-label="Delete section"
-                                      title="Delete section"
-                                      type="button"
-                                    >
-                                      <FiTrash2 size={15} />
-                                    </button>
+                                    <div className="flex items-center justify-center cursor-pointer">
+                                      <button
+                                        onClick={() => handleDeleteSection(id)}
+                                        className="hidden group-hover:block text-slate-500 hover:text-red-700 ml-auto cursor-pointer"
+                                        aria-label="Delete section"
+                                        title="Delete section"
+                                        type="button"
+                                      >
+                                        <FiTrash2 size={15} />
+                                      </button>
 
-                                    <button
-                                      onClick={() => handleHideSection(id)}
-                                      className={`ml-2 cursor-pointer group-hover:block hover:bg-gray-100 ${
-                                        isHidden
-                                          ? "block text-gray-400 hover:text-gray-600"
-                                          : "hidden text-gray-500 hover:text-gray-700"
-                                      }`}
-                                      aria-label={
-                                        isHidden
-                                          ? "Show section"
-                                          : "Hide section"
-                                      }
-                                      title={
-                                        isHidden
-                                          ? "Show section"
-                                          : "Hide section"
-                                      }
-                                      type="button"
-                                    >
-                                      {isHidden ? (
-                                        <FiEyeOff size={15} />
-                                      ) : (
-                                        <FiEye size={15} />
-                                      )}
-                                    </button>
+                                      <button
+                                        onClick={() => handleHideSection(id)}
+                                        className={`ml-2 cursor-pointer group-hover:block hover:bg-gray-100 ${
+                                          isHidden
+                                            ? "block text-gray-400 hover:text-gray-600"
+                                            : "hidden text-gray-500 hover:text-gray-700"
+                                        }`}
+                                        aria-label={
+                                          isHidden
+                                            ? "Show section"
+                                            : "Hide section"
+                                        }
+                                        title={
+                                          isHidden
+                                            ? "Show section"
+                                            : "Hide section"
+                                        }
+                                        type="button"
+                                      >
+                                        {isHidden ? (
+                                          <FiEyeOff size={15} />
+                                        ) : (
+                                          <FiEye size={15} />
+                                        )}
+                                      </button>
+                                    </div>
                                   </div>
-                                </div>
-                              )}
-                            </Draggable>
-                          );
-                        })
-                      )}
-                      {provided.placeholder}
+                                )}
+                              </Draggable>
+                            );
+                          })
+                        )}
+                        {provided.placeholder}
+                      </div>
+                        <button
+                          className="w-full hover:bg-gray-200 rounded-lg transition-all ease-in-out duration-300 border border-slate-200 flex items-center text-sm cursor-pointer outline-none gap-2 px-2 py-1.5 text-blue-700"
+                          ref={buttonRef}
+                          onClick={togglePopup}
+                        >
+                          <GoPlusCircle />
+                          Add section
+                        </button>
                     </div>
-                      <button
-                        className="w-full hover:bg-gray-200 rounded-lg transition-all ease-in-out duration-300 border border-slate-200 flex items-center text-sm cursor-pointer outline-none gap-2 px-2 py-1.5 text-blue-700"
-                        ref={buttonRef}
-                        onClick={togglePopup}
-                      >
-                        <GoPlusCircle />
-                        Add section
-                      </button>
-                  </div>
-                )}
-              </Droppable>
-            </DragDropContext>
+                  )}
+                </Droppable>
+              </DragDropContext>
+            {/* )} */}
+            </>
           )}
+
           {activeTab === "settings" && (
             <p className="text-gray-600">Settings content goes here...</p>
           )}
@@ -549,6 +555,7 @@ const WebEditor = () => {
                             className={`rounded ${
                               snapshot.isDragging ? "shadow-lg" : ""
                             }`}
+                            onClick={() => setSelectedSection({ id, sectionId })}
                           >
                             {renderSectionPreview(sectionId)}
                           </div>
