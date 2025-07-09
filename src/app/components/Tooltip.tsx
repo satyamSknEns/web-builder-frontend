@@ -2,7 +2,7 @@ import React from "react";
 
 const Tooltip = ({ children, message, position = "top", width = "auto", maxWidth = "100px", bg = "bg-white" }) => {
   const tooltipContent = typeof message === "function" ? message() : message;
-  console.log("position",position);
+  // console.log("position",position);
   return (
     <div className="relative inline-block group">
       {children}

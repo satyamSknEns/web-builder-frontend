@@ -1,6 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import { FiFacebook, FiTwitter, FiInstagram } from "react-icons/fi";
+import Image from "next/image";
 
 const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
@@ -10,8 +11,7 @@ const Footer: React.FC = () => {
       <div className="flex flex-col md:flex-row items-center justify-between gap-6">
         <div className="text-xl font-bold text-blue-600">
           <Link href="/">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png" width={100} height={50} alt="logo" />
+            <Image src="/logo.png" alt="logo" width={100} height={50} />
           </Link>
         </div>
 
