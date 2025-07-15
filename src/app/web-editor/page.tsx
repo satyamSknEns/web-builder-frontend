@@ -48,17 +48,31 @@ const sectionComponents: {
   gallery_sections: {
     component: GalleryPreview,
     schema: GallerySchema,
-    defaultContent: {
-      heading: GallerySchema.allFields.find(f => f.id === "heading")?.default,
-      galleryLayout: GallerySchema.allFields.find(f => f.id === "galleryLayout")?.default,
-      images: Array.from({
-        length: Number(GallerySchema.allFields.find(f => f.id === "imageCount")?.default) || 3
-      }).map(() => ({
-        imageUrl: GallerySchema.defaultImagesSchema.imageUrl,
-        buttonText: GallerySchema.defaultImagesSchema.buttonText,
-        buttonUrl: GallerySchema.defaultImagesSchema.buttonUrl,
-      })),
-    }
+    defaultContent: (() => { // Use an IIFE for more complex default content logic
+      const headingField = GallerySchema.allFields.find(f => f.id === "gallery_title");
+      const galleryLayoutField = GallerySchema.allFields.find(f => f.id === "galleryLayout");
+      const itemsFieldDefinition = GallerySchema.allFields.find(
+        (field) => field.id === "items" && field.type === "array"
+      );
+
+      // Get default values for individual item fields
+      const defaultImage = (itemsFieldDefinition as any)?.itemFields.find((f: any) => f.id === "image")?.default as string || "/assets/placeholder.jpg";
+      const defaultLink = (itemsFieldDefinition as any)?.itemFields.find((f: any) => f.id === "link")?.default as string;
+      const defaultCaptionText = (itemsFieldDefinition as any)?.itemFields.find((f: any) => f.id === "caption_text")?.default as string;
+
+      // Determine the number of default items
+      const maxItems = GallerySchema.max_items || 3;
+
+      return {
+        heading: headingField?.default || "Our Featured Work",
+        galleryLayout: galleryLayoutField?.default || "horizontal",
+        items: Array.from({ length: maxItems }).map(() => ({
+          image: defaultImage,
+          link: defaultLink,
+          caption_text: defaultCaptionText,
+        })),
+      };
+    })(), // Immediately invoke the function
   },
   // Add other sections here
 };
@@ -236,23 +250,6 @@ const WebEditor = () => {
     newSections.splice(destination.index, 0, movedItem);
     setAddedSections(newSections);
   };
-
-  // const renderSectionPreview = (sectionId: string) => {
-  //   switch (sectionId) {
-  //     case "image_text_section":
-  //       return <ImageTextPreview />;
-  //     case "2_column_section":
-  //       return <ColumnsPreview heading="2 Columns" />;
-  //     case "3_column_section":
-  //       return <ColumnsPreview heading="3 Columns" />;
-  //     case "4_column_section":
-  //       return <ColumnsPreview heading="4 Columns" />;
-  //     case "gallery_sections":
-  //       return <GalleryPreview />;
-  //     default:
-  //       return null;
-  //   }
-  // };
 
   const renderSectionPreview = (sectionId: string, content?: any) => {
     const SectionComponent = sectionComponents[sectionId]?.component;
