@@ -6,16 +6,7 @@ import {
   Draggable,
   DropResult,
 } from "@hello-pangea/dnd";
-import {
-  FiSettings,
-  FiGrid,
-  FiTrash2,
-  FiEyeOff,
-  FiEye,
-  FiRotateCcw,
-  FiRotateCw,
-  FiColumns,
-} from "react-icons/fi";
+import { FiSettings, FiGrid, FiTrash2, FiEyeOff, FiEye, FiRotateCcw, FiRotateCw, FiColumns, } from "react-icons/fi";
 import { GrColumns } from "react-icons/gr";
 import { IoIosArrowUp, IoIosArrowDown, IoIosArrowBack } from "react-icons/io";
 import { LuColumns3 } from "react-icons/lu";
@@ -31,7 +22,60 @@ import {
   GalleryPreview,
   ColumnsPreview,
 } from "../components/sectionPreviews";
+import { schema as ImageTextSchema } from "../components/sectionPreviews/ImageTextPreview";
+import { schema as GallerySchema } from "../components/sectionPreviews/GalleryPreview";
 import Header from "./header/Header";
+import SectionEditorForm from "./formEditor/sectionEditorForm";
+
+
+const sectionComponents: {
+  [key: string]: {
+    component: React.ComponentType<any>;
+    schema: any;
+    defaultContent: any;
+  };
+} = {
+  image_text_section: {
+    component: ImageTextPreview,
+    schema: ImageTextSchema,
+    defaultContent: {
+      imageUrl: ImageTextSchema.allFields.find(f => f.id === "imageUrl")?.default,
+      heading: ImageTextSchema.allFields.find(f => f.id === "heading")?.default,
+      description: ImageTextSchema.allFields.find(f => f.id === "description")?.default,
+      imageAlignment: ImageTextSchema.allFields.find(f => f.id === "imageAlignment")?.default,
+    }
+  },
+  gallery_sections: {
+    component: GalleryPreview,
+    schema: GallerySchema,
+    defaultContent: (() => { // Use an IIFE for more complex default content logic
+      const headingField = GallerySchema.allFields.find(f => f.id === "gallery_title");
+      const galleryLayoutField = GallerySchema.allFields.find(f => f.id === "galleryLayout");
+      const itemsFieldDefinition = GallerySchema.allFields.find(
+        (field) => field.id === "items" && field.type === "array"
+      );
+
+      // Get default values for individual item fields
+      const defaultImage = (itemsFieldDefinition as any)?.itemFields.find((f: any) => f.id === "image")?.default as string || "/assets/placeholder.jpg";
+      const defaultLink = (itemsFieldDefinition as any)?.itemFields.find((f: any) => f.id === "link")?.default as string;
+      const defaultCaptionText = (itemsFieldDefinition as any)?.itemFields.find((f: any) => f.id === "caption_text")?.default as string;
+
+      // Determine the number of default items
+      const maxItems = GallerySchema.max_items || 3;
+
+      return {
+        heading: headingField?.default || "Our Featured Work",
+        galleryLayout: galleryLayoutField?.default || "horizontal",
+        items: Array.from({ length: maxItems }).map(() => ({
+          image: defaultImage,
+          link: defaultLink,
+          caption_text: defaultCaptionText,
+        })),
+      };
+    })(), // Immediately invoke the function
+  },
+  // Add other sections here
+};
 
 interface AddedSection {
   id: string;
@@ -57,7 +101,7 @@ const WebEditor = () => {
   const [allSections, setAllSections] = useState<string[]>([]);
   const [undoStack, setUndoStack] = useState<EditorState[]>([]);
   const [redoStack, setRedoStack] = useState<EditorState[]>([]);
-  const [pages] = useState(["Home", "About", "Contact"]);
+  const [pages] = useState(["Home page", "About", "Contact","Product page","Collection page"]);
   const [selectedPage, setSelectedPage] = useState(pages[0]);
   const sidebarRef = useRef<HTMLDivElement>(null);
   const popupRef = useRef<HTMLDivElement>(null);
@@ -139,11 +183,12 @@ const WebEditor = () => {
       sectionId,
     };
 
-    const defaultContent = getDefaultContent(sectionId);
+    // Get default content from the sectionComponents map
+    const defaultContent = sectionComponents[sectionId]?.defaultContent || {};
 
     setSectionContent((prev) => ({
       ...prev,
-      [newAddedSection.id]: defaultContent,
+      [newAddedSection.id]: JSON.parse(JSON.stringify(defaultContent)), // Deep clone the default content
     }));
 
     pushToUndoStack(currentEditorState());
@@ -206,30 +251,12 @@ const WebEditor = () => {
     setAddedSections(newSections);
   };
 
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
-
-  const toggleSection = (key: string) => {
-    setOpenSections((prev) => ({
-      ...prev,
-      [key]: !prev[key],
-    }));
-  };
-
-  const renderSectionPreview = (sectionId: string) => {
-    switch (sectionId) {
-      case "image_text_section":
-        return <ImageTextPreview />;
-      case "2_column_section":
-        return <ColumnsPreview heading="2 Columns" />;
-      case "3_column_section":
-        return <ColumnsPreview heading="3 Columns" />;
-      case "4_column_section":
-        return <ColumnsPreview heading="4 Columns" />;
-      case "gallery_sections":
-        return <GalleryPreview />;
-      default:
-        return null;
+  const renderSectionPreview = (sectionId: string, content?: any) => {
+    const SectionComponent = sectionComponents[sectionId]?.component;
+    if (SectionComponent) {
+      return <SectionComponent content={content} />;
     }
+    return null;
   };
 
   const sectionIcon = (section: string) => {
@@ -320,7 +347,7 @@ const WebEditor = () => {
     }
     return {};
   };
-
+console.log('selectedSection',selectedSection);
   return (
     <div className="h-screen flex flex-col text-black w-full overflow-hidden">
       <Header
@@ -372,82 +399,19 @@ const WebEditor = () => {
                       </p>
                     </div>
 
-                    {Object.entries(sectionContent[selectedSection.id]).map(
-                      ([key, value]) => {
-                        if (
-                          typeof value === "string" ||
-                          typeof value === "number"
-                        ) {
-                          return (
-                            <div key={key}>
-                              <label className="text-sm text-gray-700">
-                                {key}
-                              </label>
-                              <input
-                                type="text"
-                                className="w-full border border-slate-300 rounded-lg py-1.5 px-2 text-gray-600"
-                                value={value}
-                                onChange={(e) =>
-                                  setSectionContent((prev) => ({
-                                    ...prev,
-                                    [selectedSection.id]: {
-                                      ...prev[selectedSection.id],
-                                      [key]: e.target.value,
-                                    },
-                                  }))
-                                }
-                              />
-                            </div>
-                          );
-                        }
-                        if (Array.isArray(value)) {
-                          return (
-                            <div key={key}>
-                              <label className="text-sm font-medium text-gray-700 block mb-1">
-                                {key}
-                              </label>
-                              {value.map((item: any, index: number) => (
-                                <div
-                                  key={index}
-                                  className="p-2 mb-2 border border-slate-200 rounded bg-gray-50"
-                                >
-                                  {Object.entries(item).map(
-                                    ([subKey, subVal]) => (
-                                      <div key={subKey} className="mb-2">
-                                        <label className="text-xs text-gray-600">
-                                          {subKey}
-                                        </label>
-                                        <input
-                                          type="text"
-                                          value={String(subVal ?? "")}
-                                          onChange={(e) => {
-                                            const updated = [...value];
-                                            updated[index] = {
-                                              ...updated[index],
-                                              [subKey]: e.target.value,
-                                            };
-                                            setSectionContent((prev) => ({
-                                              ...prev,
-                                              [selectedSection.id]: {
-                                                ...prev[selectedSection.id],
-                                                [key]: updated,
-                                              },
-                                            }));
-                                          }}
-                                          className="w-full border border-slate-300 rounded px-2 py-1 text-sm"
-                                        />
-                                      </div>
-                                    )
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          );
-                        }
-
-                        return null;
-                      }
-                    )}
+                    <SectionEditorForm
+                      sectionId={selectedSection.sectionId}
+                      instanceId={selectedSection.id}
+                      // Pass the schema directly from the sectionComponents map
+                      sectionSchema={sectionComponents[selectedSection.sectionId]?.schema}
+                      content={sectionContent[selectedSection.id]}
+                      onContentChange={(instanceId, updatedContent) => {
+                        setSectionContent((prev) => ({
+                          ...prev,
+                          [instanceId]: updatedContent,
+                        }));
+                      }}
+                    />
                   </div>
                 ) : (
                   <DragDropContext onDragEnd={onDragEnd}>
@@ -466,6 +430,7 @@ const WebEditor = () => {
                             ) : (
                               addedSections.map(({ id, sectionId }, index) => {
                                 const isHidden = hiddenSections.includes(id);
+                                console.log("sectionId__",sectionId);
                                 return (
                                   <Draggable
                                     key={`${id}-${index}`}
@@ -482,9 +447,6 @@ const WebEditor = () => {
                                             ? "bg-gray-200 shadow"
                                             : "hover:bg-gray-100"
                                         }`}
-                                        onClick={() =>
-                                          setSelectedSection({ id, sectionId })
-                                        }
                                       >
                                         <div className="flex items-center justify-center">
                                           <span className="text-gray-500 block group-hover:hidden">
@@ -495,7 +457,7 @@ const WebEditor = () => {
                                             {" "}
                                             <RxDragHandleDots2 />{" "}
                                           </span>
-                                          <span className="cursor-pointer ml-1">
+                                          <span className="cursor-pointer ml-1" onClick={() => setSelectedSection({ id, sectionId }) }>
                                             {formatSectionLabel(sectionId)}
                                           </span>
                                         </div>
@@ -513,32 +475,8 @@ const WebEditor = () => {
                                             <FiTrash2 size={15} />
                                           </button>
 
-                                          <button
-                                            onClick={() =>
-                                              handleHideSection(id)
-                                            }
-                                            className={`ml-2 cursor-pointer group-hover:block hover:bg-gray-100 ${
-                                              isHidden
-                                                ? "block text-gray-400 hover:text-gray-600"
-                                                : "hidden text-gray-500 hover:text-gray-700"
-                                            }`}
-                                            aria-label={
-                                              isHidden
-                                                ? "Show section"
-                                                : "Hide section"
-                                            }
-                                            title={
-                                              isHidden
-                                                ? "Show section"
-                                                : "Hide section"
-                                            }
-                                            type="button"
-                                          >
-                                            {isHidden ? (
-                                              <FiEyeOff size={15} />
-                                            ) : (
-                                              <FiEye size={15} />
-                                            )}
+                                          <button onClick={() => handleHideSection(id) } className={`ml-2 cursor-pointer group-hover:block hover:bg-gray-100 ${ isHidden ? "block text-gray-400 hover:text-gray-600" : "hidden text-gray-500 hover:text-gray-700" }`} aria-label={ isHidden ? "Show section" : "Hide section" } title={ isHidden ? "Show section" : "Hide section" } type="button" >
+                                            {isHidden ? ( <FiEyeOff size={15} /> ) : ( <FiEye size={15} /> )}
                                           </button>
                                         </div>
                                       </div>
@@ -576,8 +514,8 @@ const WebEditor = () => {
           {activeTab === "content" && showSectionPopup && (
             <div
               ref={popupRef}
-              className={`mt-4 rounded-lg border-blue-400 shadow-[0_3px_10px_rgb(0,0,0,0.2)] md:w-[600px] h-[360px] overflow-y-hidden flex z-10 absolute left-full bottom-1 right-0  ${
-                activeTab === "content" && showSectionPopup ? "slide-top" : ""
+              className={`mt-4 rounded-lg border-blue-400 shadow-[0_3px_10px_rgb(0,0,0,0.2)] md:w-[600px] h-[360px] overflow-y-hidden flex z-10 absolute left-full bottom-1 right-0  ${
+                activeTab === "content" && showSectionPopup ? "slideTop" : ""
               }`}
               onClick={(e) => e.stopPropagation()}
             >
@@ -587,59 +525,26 @@ const WebEditor = () => {
                   placeholder="Search"
                   className="w-full border border-slate-300 rounded-lg py-1.5 px-2 text-gray-600 text-sm outline-none focus:border-slate-500 transition-all"
                 />
-                <h4 className="text-sm font-semibold text-gray-700 my-3">
-                  Sections
-                </h4>
+                <h4 className="text-sm font-semibold text-gray-700 my-3"> Sections </h4>
                 <ul className="space-y-1">
-                  {Object.entries(sectionsData).map(([key, value]) => {
-                    const isOpen = openSections[key] || false;
-                    const isExpandable =
-                      Array.isArray(value) && value.length > 1;
+                  {Object.keys(sectionComponents).map((sectionIdKey) => {
+                    const sectionSchema = sectionComponents[sectionIdKey]?.schema;
+                    if (!sectionSchema) return null; // Ensure schema exists
 
                     return (
-                      <li key={key}>
+                      <li key={sectionIdKey}>
                         <button
-                          onClick={() =>
-                            isExpandable
-                              ? toggleSection(key)
-                              : handleAddSection(key)
-                          }
-                          onMouseEnter={() => setHoveredSection(key)}
+                          onClick={() => handleAddSection(sectionIdKey)}
+                          onMouseEnter={() => setHoveredSection(sectionIdKey)}
                           className="w-full text-left px-3 py-1 text-sm rounded-md text-gray-700 hover:bg-gray-100 flex justify-start items-center cursor-pointer outline-none"
                         >
-                          <span className="w-4 h-4">{sectionIcon(key)}</span>{" "}
+                          <span className="w-4 h-4">{sectionIcon(sectionIdKey)}</span>{" "}
                           <div className="flex items-center justify-between w-full">
                             <span className="ml-2">
-                              {formatSectionLabel(key)}
+                              {formatSectionLabel(sectionSchema.name || sectionIdKey)} {/* Use schema name or format ID */}
                             </span>
-                            {isExpandable && (
-                              <span>
-                                {isOpen ? <IoIosArrowUp /> : <IoIosArrowDown />}
-                              </span>
-                            )}
                           </div>
                         </button>
-
-                        {isOpen && isExpandable && (
-                          <ul className="ml-4 mt-1 space-y-1">
-                            {(value as any[]).map((item) => (
-                              <li
-                                key={item.sectionId}
-                                className="cursor-pointer"
-                              >
-                                <button
-                                  onClick={() => handleAddSection(item.heading)}
-                                  onMouseEnter={() =>
-                                    setHoveredSubSection(item.heading)
-                                  }
-                                  className="w-full text-left px-3 py-1 text-sm rounded-md text-gray-500 hover:bg-gray-200 cursor-pointer"
-                                >
-                                  {item.heading}
-                                </button>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
                       </li>
                     );
                   })}
@@ -652,7 +557,8 @@ const WebEditor = () => {
                 }
               >
                 {hoveredSection ? (
-                  renderSectionPreview(hoveredSection)
+                  // Pass the default content for preview in the add section popup
+                  renderSectionPreview(hoveredSection, sectionComponents[hoveredSection]?.defaultContent)
                 ) : (
                   <p className="text-gray-500">
                     Select or hover over a section to preview.
@@ -671,48 +577,50 @@ const WebEditor = () => {
             </div>
           ) : (
             <DragDropContext onDragEnd={onDragEnd}>
-              <Droppable droppableId="section-list">
-                {(provided) => (
-                  <div
-                    {...provided.droppableProps}
-                    ref={provided.innerRef}
-                    className="space-y-4 h-full border border-blue-100 rounded-md shadow-[0_3px_10px_rgb(0,0,0,0.2)] p-2 bg-white overflow-y-auto"
-                  >
-                    {addedSections.map(({ id, sectionId }, index) => {
-                      const isHidden = hiddenSections.includes(id);
-                      return (
-                        <Draggable
-                          key={`${id}-${index}`}
-                          draggableId={`${id}-${index}`}
-                          index={index}
-                        >
-                          {(provided, snapshot) => (
-                            <div
-                              ref={provided.innerRef}
-                              {...provided.draggableProps}
-                              {...provided.dragHandleProps}
-                              style={{
-                                display: isHidden ? "none" : undefined,
-                                ...provided.draggableProps.style,
-                              }}
-                              className={`rounded ${
-                                snapshot.isDragging ? "shadow-lg" : ""
-                              }`}
-                              onClick={() =>
-                                setSelectedSection({ id, sectionId })
-                              }
-                            >
-                              {renderSectionPreview(sectionId)}
-                            </div>
-                          )}
-                        </Draggable>
-                      );
-                    })}
-                    {provided.placeholder}
-                  </div>
-                )}
-              </Droppable>
-            </DragDropContext>
+            <Droppable droppableId="section-list">
+              {(provided) => (
+                <div
+                  {...provided.droppableProps}
+                  ref={provided.innerRef}
+                  className="space-y-4 h-full border border-blue-100 rounded-md shadow-[0_3px_10px_rgb(0,0,0,0.2)] p-2 bg-white overflow-y-auto"
+                >
+                  {addedSections.map(({ id, sectionId }, index) => {
+                    const isHidden = hiddenSections.includes(id);
+                    const currentSectionContent = sectionContent[id]; // Get content for the specific instance
+                    return (
+                      <Draggable
+                        key={`${id}-${index}`}
+                        draggableId={`${id}-${index}`}
+                        index={index}
+                      >
+                        {(provided, snapshot) => (
+                          <div
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                            {...provided.dragHandleProps}
+                            style={{
+                              display: isHidden ? "none" : undefined,
+                              ...provided.draggableProps.style,
+                            }}
+                            className={`rounded ${
+                              snapshot.isDragging ? "shadow-lg" : ""
+                            }`}
+                            onClick={() =>
+                              setSelectedSection({ id, sectionId })
+                            }
+                          >
+                            {/* Pass the actual content to the renderSectionPreview */}
+                            {renderSectionPreview(sectionId, currentSectionContent)}
+                          </div>
+                        )}
+                      </Draggable>
+                    );
+                  })}
+                  {provided.placeholder}
+                </div>
+              )}
+            </Droppable>
+          </DragDropContext>
           )}
         </div>
       </div>

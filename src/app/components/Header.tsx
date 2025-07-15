@@ -68,9 +68,8 @@ const Header: React.FC = () => {
         }`}
       >
         <div className="text-2xl font-bold text-blue-600">
-          <Link href="/logo.png">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png" width={100} height={50} alt="logo" />
+          <Link href="/">
+            <Image src="/logo.png" alt="logo" width={100} height={52} className="h-auto" />
           </Link>
         </div>
 
